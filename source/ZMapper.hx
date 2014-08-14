@@ -1,6 +1,7 @@
 package ;
 import flash.display.BitmapData;
 import flixel.FlxG;
+import flixel.util.FlxPoint;
 import haxe.Timer;
 import openfl.geom.Point;
 import openfl.geom.Rectangle;
@@ -20,6 +21,7 @@ class ZMapper
 	
 	private var _mapArray:Array<Int>;
 	private var _rooms:Array<Array<Int>>;
+	private var _doorQueue:Array<Array<Int>>;
 	private var _doors:Array<Array<Int>>;
 	private var _mapBitmapData:BitmapData;
 	
@@ -27,12 +29,12 @@ class ZMapper
 	private var _h:Int;				  //MAP HEIGHT
 	private var _rsMax:Int;			  //MAX ROOM SIZE
 	private var _rsMin:Int;			  //MAX ROOM SIZE
-	private var _mrNum:Int;			  //MAX NUMBER OF ROOMS
+	private var _iterations:Int;	  //HOW MANY TIMES TO ITERATE ROOM CREATION
 	private var _curNumRooms:Int = 0; //CURRENT NUMBER OF ROOMS
 	
-	public function new(Width:Int, Height:Int, MinRoomSize:Int, MaxRoomSize:Int, MaxRooms:Int = -1) 
+	public function new(Width:Int, Height:Int, MinRoomSize:Int, MaxRoomSize:Int, Iterations:Int = 3) 
 	{
-		_w = Width; _h = Height; _rsMin = MinRoomSize; _rsMax = MaxRoomSize; _mrNum = MaxRooms;
+		_w = Width; _h = Height; _rsMin = MinRoomSize; _rsMax = MaxRoomSize; _iterations = Iterations;
 	}
 	
 	public function returnMap():BitmapData
@@ -47,13 +49,28 @@ class ZMapper
 	{
 		initMap();
 		makeFirstRoom();
+		for (i in 0..._iterations) {
+			iterate();
+		}
 		colorMap();
+	}
+	
+	function iterate()
+	{
+		var n:Int = _doorQueue.length;
+		for (i in 0...n) {
+			makeRoom(new Point(_doorQueue[i][0], _doorQueue[i][1]), _doorQueue[i][2], _doorQueue[i][3]);
+		}
+		for (i in 0...n) {
+			_doorQueue = _doorQueue.slice(1);
+		}
 	}
 	
 	function initMap() 
 	{
 		_rooms = new Array();
 		_doors = new Array();
+		_doorQueue = new Array();
 		_mapBitmapData = new BitmapData(_w, _h, true, 0xff000000);
 		_mapArray = new Array();
 		for (i in 0...(_w * _h)) _mapArray.push(0);
@@ -68,10 +85,20 @@ class ZMapper
 		
 		writeRoom(x, y, w, h, 0);
 		
-		makeRoom(new Point(x + w - 1, randomRangeInt(y + 2, y + h - 2)), 0);
+		addDoorToQueue(x + w - 1, randomRangeInt(y + 2, y + h - 2), 0, 1);
+		addDoorToQueue(randomRangeInt(x + 2, x + w - 2), y + h - 1, 1, 1);
+		addDoorToQueue(x, randomRangeInt(y + 2, y + h - 2), 2, 1);
+		addDoorToQueue(randomRangeInt(x + 2, x + w - 2), y, 3, 1);
+		
+		/*makeRoom(new Point(x + w - 1, randomRangeInt(y + 2, y + h - 2)), 0);
 		makeRoom(new Point(randomRangeInt(x + 2, x + w - 2), y + h - 1), 1);
 		makeRoom(new Point(x, randomRangeInt(y + 2, y + h - 2)), 2);
-		makeRoom(new Point(randomRangeInt(x + 2, x + w - 2), y), 3);
+		makeRoom(new Point(randomRangeInt(x + 2, x + w - 2), y), 3);*/
+	}
+	
+	function addDoorToQueue(x:Int, y:Int, d:Int, g:Int)
+	{
+		_doorQueue.push([x, y, d, g]);
 	}
 	
 	/**
@@ -103,7 +130,7 @@ class ZMapper
 		
 		//CHECK ROOM IF COOL, WRITE ROOM, STORE ENTRANCE AS G++, MAKE THREE MORE ROOMS
 		var check:Bool = true;
-		if (x + w > _w || y + h > _h || x < 0 || y < 0 || _curNumRooms == _mrNum) check = false;
+		if (x + w > _w || y + h > _h || x < 0 || y < 0) check = false;
 		else {
 			for (n in 0...h) {
 				for (i in 0...w) {
@@ -119,10 +146,11 @@ class ZMapper
 		if (check) {
 			writeRoom(x, y, w, h, g);
 			_doors.push([Math.floor(e.x), Math.floor(e.y), g++]);
-			makeRoom(new Point(x + w - 1, randomRangeInt(y + 2, y + h - 2)), 0, g+1);
-			makeRoom(new Point(randomRangeInt(x + 2, x + w - 2), y + h - 1), 1, g+1);
-			makeRoom(new Point(x, randomRangeInt(y + 2, y + h - 2)), 2, g+1);
-			makeRoom(new Point(randomRangeInt(x + 2, x + w - 2), y), 3, g+1);
+			
+			addDoorToQueue(x + w - 1, randomRangeInt(y + 2, y + h - 2), 0, g+1);
+			addDoorToQueue(randomRangeInt(x + 2, x + w - 2), y + h - 1, 1, g+1);
+			addDoorToQueue(x, randomRangeInt(y + 2, y + h - 2), 2, g+1);
+			addDoorToQueue(randomRangeInt(x + 2, x + w - 2), y, 3, g+1);
 		}
 	}
 	

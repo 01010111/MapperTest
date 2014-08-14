@@ -19,11 +19,11 @@ class PlayState extends FlxState
 	{
 		super.create();
 		
-		var m:ZMapper = new ZMapper(Math.floor(FlxG.width * 0.25), Math.floor(FlxG.height * 0.25), 4, 8);
+		var m:ZMapper = new ZMapper(Math.floor(FlxG.width * 0.5), Math.floor(FlxG.height * 0.5), 4, 24, 8);
 		var s:FlxSprite;
-		s = new FlxSprite(FlxG.width * 0.5 - FlxG.width * 0.125, FlxG.height * 0.5 - FlxG.height * 0.125);
+		s = new FlxSprite(FlxG.width * 0.5 - FlxG.width * 0.25, FlxG.height * 0.5 - FlxG.height * 0.25);
 		s.pixels = m.returnMap();
-		s.scale.set(4, 4);
+		s.scale.set(2, 2);
 		add(s);
 	}
 	
@@ -42,5 +42,6 @@ class PlayState extends FlxState
 	override public function update():Void
 	{
 		super.update();
+		if (FlxG.keys.justPressed.R) FlxG.switchState(new PlayState());
 	}	
 }
