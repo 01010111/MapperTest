@@ -25,12 +25,12 @@ class ZMapper
 	private var _doors:Array<Array<Int>>;
 	private var _mapBitmapData:BitmapData;
 	
-	private var _w:Int;				  //MAP WIDTH
-	private var _h:Int;				  //MAP HEIGHT
-	private var _rsMax:Int;			  //MAX ROOM SIZE
-	private var _rsMin:Int;			  //MAX ROOM SIZE
-	private var _iterations:Int;	  //HOW MANY TIMES TO ITERATE ROOM CREATION
-	private var _curNumRooms:Int = 0; //CURRENT NUMBER OF ROOMS
+	private var _w:Int;
+	private var _h:Int;
+	private var _rsMax:Int;
+	private var _rsMin:Int;
+	private var _iterations:Int;
+	private var _curNumRooms:Int = 0;
 	
 	public function new(Width:Int, Height:Int, MinRoomSize:Int, MaxRoomSize:Int, Iterations:Int = 3) 
 	{
@@ -89,11 +89,6 @@ class ZMapper
 		addDoorToQueue(randomRangeInt(x + 2, x + w - 2), y + h - 1, 1, 1);
 		addDoorToQueue(x, randomRangeInt(y + 2, y + h - 2), 2, 1);
 		addDoorToQueue(randomRangeInt(x + 2, x + w - 2), y, 3, 1);
-		
-		/*makeRoom(new Point(x + w - 1, randomRangeInt(y + 2, y + h - 2)), 0);
-		makeRoom(new Point(randomRangeInt(x + 2, x + w - 2), y + h - 1), 1);
-		makeRoom(new Point(x, randomRangeInt(y + 2, y + h - 2)), 2);
-		makeRoom(new Point(randomRangeInt(x + 2, x + w - 2), y), 3);*/
 	}
 	
 	function addDoorToQueue(x:Int, y:Int, d:Int, g:Int)
@@ -101,34 +96,25 @@ class ZMapper
 		_doorQueue.push([x, y, d, g]);
 	}
 	
-	/**
-	 * 
-	 * @param	e Point Entrance
-	 * @param	d Int Entrance direction - 0:West, 1:South, 2:East, 3:North
-	 * @param	g Int Generation for difficulty scaling/key placement
-	 */
 	function makeRoom(e:Point, d:Int, g:Int = 1)
 	{
-		//INIT ROOM VARIABLES, SET WIDTH AND HEIGHT
 		var w:Int = randomRangeInt(_rsMin + 2, _rsMax + 2);
 		var h:Int = randomRangeInt(_rsMin + 2, _rsMax + 2);
 		var x:Int;
 		var y:Int;
 		
-		//GET X AND Y
-		if (d == 0) {			//WEST GOING EAST
+		if (d == 0) {
 			x = Math.floor(e.x); y = randomRangeInt(e.y - h + 2, e.y - 2);
-		} else if (d == 1) {	//SOUTH GOING NORTH
+		} else if (d == 1) {
 			x = randomRangeInt(e.x - w + 2, e.x - 2); y = Math.floor(e.y);
-		} else if (d == 2) {	//EAST GOING WEST
+		} else if (d == 2) {
 			x = Math.floor(e.x) - w + 1; y = randomRangeInt(e.y - h + 2, e.y - 2);
-		} else if (d == 3) {	//NORTH GOING SOUTH
+		} else if (d == 3) {
 			x = randomRangeInt(e.x - w + 2, e.x - 2); y = Math.floor(e.y) - h + 1;
 		} else {
 			x = y = -1;
 		}
 		
-		//CHECK ROOM IF COOL, WRITE ROOM, STORE ENTRANCE AS G++, MAKE THREE MORE ROOMS
 		var check:Bool = true;
 		if (x + w > _w || y + h > _h || x < 0 || y < 0) check = false;
 		else {
@@ -154,14 +140,6 @@ class ZMapper
 		}
 	}
 	
-	/**
-	 * 
-	 * @param	x Int X Pos
-	 * @param	y Int Y Pos
-	 * @param	w Int Width
-	 * @param	h Int Height
-	 * @param	g Int Generation for difficulty scaling/key placement
-	 */
 	function writeRoom(x:Int, y:Int, w:Int, h:Int, g:Int) 
 	{
 		_curNumRooms++;
@@ -189,12 +167,6 @@ class ZMapper
 		
 	}
 	
-	/**
-	 * 
-	 * @param	MIN Float Minimum number to return
-	 * @param	MAX Float Maximum number to return
-	 * @return Int Random Integer between the minimum and maximum numbers
-	 */
 	function randomRangeInt(?MIN:Float = -1, ?MAX:Float = 1):Int
 	{
 		return Math.round(MIN + Math.random() * (MAX - MIN));
