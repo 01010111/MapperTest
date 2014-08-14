@@ -14,23 +14,26 @@ import openfl.Lib;
 class ZMapper
 {
 	
-	private var _colorVoid:Int = 0xff333333;
-	private var _colorFloor:Int = 0xffabb5b2;
-	private var _colorWall:Int = 0xff000000;
-	private var _colorDoor:Int = 0xff924530;
+	var _colorVoid:Int = 0xff333333;
+	var _colorFloor:Int = 0xffabb5b2;
+	var _colorWall:Int = 0xff000000;
+	var _colorDoor:Int = 0xff924530;
 	
-	private var _mapArray:Array<Int>;
-	private var _rooms:Array<Array<Int>>;
-	private var _doorQueue:Array<Array<Int>>;
-	private var _doors:Array<Array<Int>>;
-	private var _mapBitmapData:BitmapData;
+	var _mapArray:Array<Int>;
+	var _rooms:Array<Array<Array<Int>>>;
+	var _doorQueue:Array<Array<Int>>;
+	var _doors:Array<Array<Array<Int>>>;
+	var _mapBitmapData:BitmapData;
 	
-	private var _w:Int;
-	private var _h:Int;
-	private var _rsMax:Int;
-	private var _rsMin:Int;
-	private var _iterations:Int;
-	private var _curNumRooms:Int = 0;
+	var _lockableDoors:Array<Array<Array<Int>>>;
+	var _keyRooms:Array<Array<Array<Int>>>;
+	
+	var _w:Int;
+	var _h:Int;
+	var _rsMax:Int;
+	var _rsMin:Int;
+	var _iterations:Int;
+	var _curNumRooms:Int = 0;
 	
 	public function new(Width:Int, Height:Int, MinRoomSize:Int, MaxRoomSize:Int, Iterations:Int = 3) 
 	{
@@ -49,10 +52,11 @@ class ZMapper
 	{
 		initMap();
 		makeFirstRoom();
-		for (i in 0..._iterations) {
-			iterate();
-		}
+		for (i in 0..._iterations) iterate();
+		_keyRooms = _rooms;
+		_lockableDoors = _doors;
 		colorMap();
+		for (i in 0..._iterations - 1) addKey(i + 2);
 	}
 	
 	function iterate()
@@ -70,6 +74,10 @@ class ZMapper
 	{
 		_rooms = new Array();
 		_doors = new Array();
+		for (i in 0..._iterations + 1) {
+			_rooms.push(new Array());
+			_doors.push(new Array());
+		}
 		_doorQueue = new Array();
 		_mapBitmapData = new BitmapData(_w, _h, true, 0xff000000);
 		_mapArray = new Array();
@@ -78,17 +86,17 @@ class ZMapper
 	
 	function makeFirstRoom() 
 	{
-		var w:Int = randomRangeInt(_rsMin + 2, _rsMax + 2);
-		var h:Int = randomRangeInt(_rsMin + 2, _rsMax + 2);
-		var x:Int = randomRangeInt(0, _w - w);
-		var y:Int = randomRangeInt(0, _h - h);
+		var w:Int = random(_rsMin + 2, _rsMax + 2);
+		var h:Int = random(_rsMin + 2, _rsMax + 2);
+		var x:Int = random(0, _w - w);
+		var y:Int = random(0, _h - h);
 		
 		writeRoom(x, y, w, h, 0);
 		
-		addDoorToQueue(x + w - 1, randomRangeInt(y + 2, y + h - 2), 0, 1);
-		addDoorToQueue(randomRangeInt(x + 2, x + w - 2), y + h - 1, 1, 1);
-		addDoorToQueue(x, randomRangeInt(y + 2, y + h - 2), 2, 1);
-		addDoorToQueue(randomRangeInt(x + 2, x + w - 2), y, 3, 1);
+		addDoorToQueue(x + w - 1, random(y + 2, y + h - 2), 0, 1);
+		addDoorToQueue(random(x + 2, x + w - 2), y + h - 1, 1, 1);
+		addDoorToQueue(x, random(y + 2, y + h - 2), 2, 1);
+		addDoorToQueue(random(x + 2, x + w - 2), y, 3, 1);
 	}
 	
 	function addDoorToQueue(x:Int, y:Int, d:Int, g:Int)
@@ -98,19 +106,19 @@ class ZMapper
 	
 	function makeRoom(e:Point, d:Int, g:Int = 1)
 	{
-		var w:Int = randomRangeInt(_rsMin + 2, _rsMax + 2);
-		var h:Int = randomRangeInt(_rsMin + 2, _rsMax + 2);
+		var w:Int = random(_rsMin + 2, _rsMax + 2);
+		var h:Int = random(_rsMin + 2, _rsMax + 2);
 		var x:Int;
 		var y:Int;
 		
 		if (d == 0) {
-			x = Math.floor(e.x); y = randomRangeInt(e.y - h + 2, e.y - 2);
+			x = Math.floor(e.x); y = random(e.y - h + 2, e.y - 2);
 		} else if (d == 1) {
-			x = randomRangeInt(e.x - w + 2, e.x - 2); y = Math.floor(e.y);
+			x = random(e.x - w + 2, e.x - 2); y = Math.floor(e.y);
 		} else if (d == 2) {
-			x = Math.floor(e.x) - w + 1; y = randomRangeInt(e.y - h + 2, e.y - 2);
+			x = Math.floor(e.x) - w + 1; y = random(e.y - h + 2, e.y - 2);
 		} else if (d == 3) {
-			x = randomRangeInt(e.x - w + 2, e.x - 2); y = Math.floor(e.y) - h + 1;
+			x = random(e.x - w + 2, e.x - 2); y = Math.floor(e.y) - h + 1;
 		} else {
 			x = y = -1;
 		}
@@ -131,12 +139,12 @@ class ZMapper
 		
 		if (check) {
 			writeRoom(x, y, w, h, g);
-			_doors.push([Math.floor(e.x), Math.floor(e.y), g++]);
+			_doors[g].push([Math.floor(e.x), Math.floor(e.y)]);
 			
-			addDoorToQueue(x + w - 1, randomRangeInt(y + 2, y + h - 2), 0, g+1);
-			addDoorToQueue(randomRangeInt(x + 2, x + w - 2), y + h - 1, 1, g+1);
-			addDoorToQueue(x, randomRangeInt(y + 2, y + h - 2), 2, g+1);
-			addDoorToQueue(randomRangeInt(x + 2, x + w - 2), y, 3, g+1);
+			addDoorToQueue(x + w - 1, random(y + 2, y + h - 2), 0, g+1);
+			addDoorToQueue(random(x + 2, x + w - 2), y + h - 1, 1, g+1);
+			addDoorToQueue(x, random(y + 2, y + h - 2), 2, g+1);
+			addDoorToQueue(random(x + 2, x + w - 2), y, 3, g+1);
 		}
 	}
 	
@@ -148,26 +156,68 @@ class ZMapper
 				(n == 0 || n == h - 1 || i == 0 || i == w - 1)? _mapArray[x + y * _w + n * _w + i] = 1: _mapArray[x + y * _w + n * _w + i] = g + 3;
 			}
 		}
-		_rooms.push([x, y, w, h, g]);
+		_rooms[g].push([x, y, w, h]);
 	}
 	
 	function colorMap()
 	{
-		for (i in 0..._doors.length) {
-			_mapArray[_doors[i][0] + _doors[i][1] * _w] = 2;
+		for (n in 0..._doors.length) {
+			for (i in 0..._doors[n].length) {
+				_mapArray[_doors[n][i][0] + _doors[n][i][1] * _w] = 2;
+			}
 		}
 		
 		for (i in 0..._mapArray.length) {
 			if (_mapArray[i] == 0) _mapBitmapData.setPixel(i % _w, Math.floor(i / _w), _colorVoid);
 			else if (_mapArray[i] == 1) _mapBitmapData.setPixel(i % _w, Math.floor(i / _w), _colorWall);
 			else if (_mapArray[i] == 2) _mapBitmapData.setPixel(i % _w, Math.floor(i / _w), _colorDoor);
-			else if (_mapArray[i] == 3) _mapBitmapData.setPixel(i % _w, Math.floor(i / _w), 0xffffffff);
-			else if (_mapArray[i] > 3) _mapBitmapData.setPixel(i % _w, Math.floor(i / _w), _colorFloor);
+		}
+		
+		for (g in 0..._rooms.length) {
+			for (r in 0..._rooms[g].length) {
+				for (n in 0..._rooms[g][r][3] - 2) {
+					for (i in 0..._rooms[g][r][2] - 2) {
+						var c:Int = (Std.int(255) & 0xFF) << 24 | (Math.floor(255 - g * (255 / (_iterations + 4))) & 0xFF) << 16 | (Math.floor(255 - g * (255 / (_iterations + 4))) & 0xFF) << 8 | (Math.floor(255 - g * (255 / (_iterations + 4))) & 0xFF); 
+						_mapBitmapData.setPixel(_rooms[g][r][0] + i + 1, _rooms[g][r][1] + n + 1, c);
+					}
+				}
+			}
 		}
 		
 	}
 	
-	function randomRangeInt(?MIN:Float = -1, ?MAX:Float = 1):Int
+	function addKey(inKeyLevel:Int = -1)
+	{
+		var keyLevel:Int;
+		inKeyLevel == -1? keyLevel = random(2, _iterations): keyLevel = inKeyLevel;
+		var i:Int = 0;
+		
+		while (_lockableDoors[keyLevel].length == 0 && i < 8 || _keyRooms[keyLevel - 1].length == 0 && i < 8) {
+			keyLevel = random(1, _iterations);
+			i++;
+		}
+		
+		if (i < 8) {
+			var lockedDoorNum:Int = random(0, _lockableDoors[keyLevel].length - 1);
+			var roomWithKeyNum:Int = random(0, _keyRooms[keyLevel - 1].length - 1);
+			
+			trace("KEYLEVEL:" + keyLevel + " ROOMS:" + _keyRooms[keyLevel] + " DOORS:" + _lockableDoors[keyLevel - 1]);
+			
+			var lockedDoor:Array<Int> = _lockableDoors[keyLevel][lockedDoorNum];
+			var roomWithKey:Array<Int> = _keyRooms[keyLevel - 1][roomWithKeyNum];
+			_keyRooms[keyLevel].slice(roomWithKeyNum);
+			_lockableDoors[keyLevel - 1].slice(lockedDoorNum);
+			
+			trace(lockedDoor + " / " + roomWithKey);
+			
+			var keyColor:Int = (Std.int(255) & 0xFF) << 24 | (random(100,225) & 0xFF) << 16 | (random(100,225) & 0xFF) << 8 | (random(100,225) & 0xFF);
+			
+			_mapBitmapData.setPixel(lockedDoor[0], lockedDoor[1], keyColor);
+			_mapBitmapData.setPixel(roomWithKey[0] + Math.floor(roomWithKey[2] * 0.5), roomWithKey[1] + Math.floor(roomWithKey[3] * 0.5), keyColor);
+		}
+	}
+	
+	function random(?MIN:Float = -1, ?MAX:Float = 1):Int
 	{
 		return Math.round(MIN + Math.random() * (MAX - MIN));
 	}
